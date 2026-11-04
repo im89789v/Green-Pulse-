@@ -1,0 +1,16 @@
+soil_moisture,temperature,humidity,rainfall,crop,soil_type,growth_stage,irrigation_mm
+20,32,45,2,Rice,Clay,Vegetative,7.5
+35,28,60,5,Tomato,Loamy,Flowering,2.5
+15,38,35,0,Wheat,Sandy,Vegetative,8.5
+45,25,70,10,Maize,Clay,Maturity,0.0
+25,35,40,1,Cotton,Sandy,Flowering,6.5
+40,29,65,8,Tomato,Loamy,Vegetative,0.5
+18,36,42,0,Rice,Clay,Flowering,8.0
+50,22,75,12,Wheat,Loamy,Maturity,0.0
+30,31,50,3,Maize,Sandy,Vegetative,4.5
+22,34,48,1,Cotton,Loamy,Early,5.0
+55,24,80,15,Rice,Clay,Maturity,0.0
+12,40,30,0,Tomato,Sandy,Flowering,9.0
+38,27,65,6,Wheat,Loamy,Vegetative,1.5
+28,33,45,2,Maize,Sandy,Flowering,5.5
+42,26,70,7,Cotton,Clay,Maturity,0.0

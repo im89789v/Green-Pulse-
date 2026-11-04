@@ -1,0 +1,172 @@
+import numpy as np
+import pandas as pd
+import joblib
+
+from pathlib import Path
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+
+# Project paths
+BASE_DIR = Path(__file__).resolve().parent
+
+DATA_DIR = BASE_DIR / "data"
+MODEL_DIR = BASE_DIR / "models"
+
+DATA_DIR.mkdir(exist_ok=True)
+MODEL_DIR.mkdir(exist_ok=True)
+
+
+# 1. Generate synthetic dataset
+def generate_dataset(rows=2500):
+
+    np.random.seed(42)
+
+    crops = ["Rice", "Tomato", "Wheat", "Maize", "Cotton"]
+    soils = ["Sandy", "Loamy", "Clay"]
+    stages = ["Early", "Vegetative", "Flowering", "Maturity"]
+
+    df = pd.DataFrame({
+        "soil_moisture": np.random.uniform(5, 65, rows),
+        "temperature": np.random.uniform(15, 43, rows),
+        "humidity": np.random.uniform(20, 95, rows),
+        "rainfall": np.random.uniform(0, 25, rows),
+        "crop": np.random.choice(crops, rows),
+        "soil_type": np.random.choice(soils, rows),
+        "growth_stage": np.random.choice(stages, rows)
+    })
+
+    # Illustrative crop reference values
+    crop_reference = {
+        "Rice": 45,
+        "Tomato": 32,
+        "Wheat": 30,
+        "Maize": 34,
+        "Cotton": 29
+    }
+
+    soil_factor = {
+        "Sandy": 1.15,
+        "Loamy": 1.0,
+        "Clay": 0.9
+    }
+
+    stage_factor = {
+        "Early": 0.8,
+        "Vegetative": 1.0,
+        "Flowering": 1.1,
+        "Maturity": 0.75
+    }
+
+    # Calculate irrigation demand
+    moisture_deficit = np.maximum(
+        df["crop"].map(crop_reference)
+        - df["soil_moisture"], 0
+    )
+
+    heat_effect = np.maximum(
+        df["temperature"] - 25, 0
+    ) * 0.09
+
+    humidity_effect = np.maximum(
+        60 - df["humidity"], 0
+    ) * 0.02
+
+    rainfall_effect = df["rainfall"] * 0.7
+
+    irrigation = (
+        moisture_deficit * 0.20
+        + heat_effect
+        + humidity_effect
+    ) * df["soil_type"].map(soil_factor) \
+      * df["growth_stage"].map(stage_factor) \
+      - rainfall_effect
+
+    # Add small random variation
+    irrigation += np.random.normal(0, 0.3, rows)
+
+    df["irrigation_mm"] = np.clip(
+        irrigation, 0, 12
+    )
+
+    return df
+
+
+# 2. Train machine learning model
+def train_model():
+
+    print("\nGenerating irrigation dataset...")
+
+    df = generate_dataset()
+
+    # Save dataset
+    df.to_csv(
+        DATA_DIR / "irrigation_data.csv",
+        index=False
+    )
+
+    print("Dataset generated successfully!")
+
+    # Features and target
+    X = df.drop(columns=["irrigation_mm"])
+    y = df["irrigation_mm"]
+
+    numeric_features = [
+        "soil_moisture",
+        "temperature",
+        "humidity",
+        "rainfall"
+    ]
+
+    categorical_features = [
+        "crop",
+        "soil_type",
+        "growth_stage"
+    ]
+
+    # Preprocessing
+    preprocessor = ColumnTransformer([
+        (
+            "categorical",
+            OneHotEncoder(handle_unknown="ignore"),
+            categorical_features
+        ),
+        (
+            "numeric",
+            "passthrough",
+            numeric_features
+        )
+    ])
+
+    # Random Forest Regression
+    model = Pipeline([
+        ("preprocessor", preprocessor),
+        (
+            "regressor",
+            RandomForestRegressor(
+                n_estimators=150,
+                max_depth=14,
+                random_state=42,
+                n_jobs=-1
+            )
+        )
+    ])
+
+    print("\nTraining Random Forest model...")
+
+    model.fit(X, y)
+
+    # Save model
+    model_path = MODEL_DIR / "irrigation_model.pkl"
+
+    joblib.dump(model, model_path)
+
+    print("\nModel trained successfully!")
+    print("Model saved at:", model_path)
+    print("Training samples:", len(df))
+
+
+# 3. Execute
+if __name__ == "__main__":
+    train_model()
